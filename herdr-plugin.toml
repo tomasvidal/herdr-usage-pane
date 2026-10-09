@@ -1,0 +1,31 @@
+id = "herdr-usage-pane"
+name = "Usage Pane"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Cuanto te queda de Claude y Codex en la ventana de 5h y en la semanal, siempre a la vista en un pane."
+platforms = ["windows", "macos", "linux"]
+
+[[panes]]
+id = "usage"
+title = "Usage"
+placement = "split"
+command = ["node", "bin/usage.js"]
+
+# Abre el pane abajo del pane actual, sin robar el foco.
+[[actions]]
+id = "open"
+title = "Usage: abrir pane en este workspace"
+description = "Abre el pane de uso de Claude y Codex como split inferior."
+command = ["node", "bin/open-pane.js"]
+
+[[actions]]
+id = "setup-claude"
+title = "Usage: conectar Claude (statusLine)"
+description = "Configura el statusLine de Claude Code para guardar los limites de uso."
+command = ["node", "bin/setup-claude.js"]
+
+[[actions]]
+id = "unsetup-claude"
+title = "Usage: desconectar Claude (statusLine)"
+description = "Restaura el statusLine que tenias antes."
+command = ["node", "bin/setup-claude.js", "--uninstall"]
