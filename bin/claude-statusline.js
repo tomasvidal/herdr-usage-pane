@@ -27,16 +27,53 @@ try {
   // sin JSON valido solo se encadena la linea previa
 }
 
+// Tokens de contexto de la conversacion actual: lo que el ultimo request mando al modelo.
+function toContext(cw) {
+  const u = cw && cw.current_usage;
+  if (!u) return null;
+  const tokens =
+    (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+  return { tokens, size: cw.context_window_size ?? null };
+}
+
+// Resumen de la sesion para el pane: proyecto, modelo, costo, lineas y contexto.
+function toSession(input, prevSession) {
+  const dir = (input.workspace && input.workspace.current_dir) || input.cwd || '';
+  const cost = input.cost || {};
+  return {
+    name: path.basename(dir) || '?',
+    model: (input.model && input.model.display_name) || null,
+    cost: cost.total_cost_usd ?? null,
+    durationMs: cost.total_duration_ms ?? null,
+    added: cost.total_lines_added ?? null,
+    removed: cost.total_lines_removed ?? null,
+    context: toContext(input.context_window) || (prevSession && prevSession.context) || null,
+    updatedAt: Date.now() / 1000,
+  };
+}
+
+const SESSION_TTL_SEC = 3600;
+
 const rl = input.rate_limits;
-if (rl) {
+const sid = input.session_id;
+if (rl || sid) {
   const prev = readJson(CLAUDE_FILE, {});
-  const five = toWindow(rl.five_hour) || prev.five_hour || null;
-  const seven = toWindow(rl.seven_day) || prev.seven_day || null;
+  const now = Date.now() / 1000;
+  // Se descartan las sesiones que hace rato no escriben (ya cerradas).
+  const sessions = {};
+  for (const [id, s] of Object.entries(prev.sessions || {})) {
+    if (now - (s.updatedAt || 0) < SESSION_TTL_SEC) sessions[id] = s;
+  }
+  if (sid) sessions[sid] = toSession(input, sessions[sid]);
+  const five = toWindow(rl && rl.five_hour) || prev.five_hour || null;
+  const seven = toWindow(rl && rl.seven_day) || prev.seven_day || null;
   try {
     writeJsonAtomic(CLAUDE_FILE, {
       five_hour: five,
       seven_day: seven,
-      updatedAt: Date.now() / 1000,
+      sessions,
+      // updatedAt marca la frescura de los rate limits, no la de las sesiones
+      updatedAt: rl ? now : prev.updatedAt ?? null,
     });
   } catch {
     // el statusline nunca debe romper la sesion de Claude

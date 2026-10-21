@@ -3,6 +3,7 @@
 // si no lo abre como split inferior, sin robar el foco, y lo achica a una barra
 // baja (herdr no deja fijar el alto al abrir un split).
 const { spawnSync } = require('child_process');
+const { fitPaneRows } = require('../lib/herdr');
 
 const PLUGIN = 'herdr-usage-pane';
 
@@ -53,4 +54,7 @@ if (r.status !== 0) process.exit(r.status ?? 1);
 
 const opened = json(r);
 const paneId = opened && opened.result.plugin_pane.pane.pane_id;
-if (paneId) herdr(['pane', 'resize', '--direction', 'down', '--amount', '0.45', '--pane', paneId]);
+if (paneId) {
+  herdr(['pane', 'resize', '--direction', 'down', '--amount', '0.45', '--pane', paneId]);
+  fitPaneRows(paneId, 3);
+}
