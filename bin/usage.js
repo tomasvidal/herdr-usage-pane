@@ -45,10 +45,14 @@ function snapshot(own) {
     }
   };
   const claude = safe(readClaudeUsage);
-  // La conversacion de la pestana de este pane va primera; si no se encuentra,
-  // queda la que escribio ultimo.
-  const mine = own && own.sessionId;
-  if (mine && claude) claude.sessions.sort((a, b) => (b.id === mine) - (a.id === mine));
+  // Se muestra solo la conversacion de la pestana de este pane. Una sesion recien
+  // abierta todavia no escribio nada: queda con modelo y contexto sin dato. Sin Claude
+  // en la pestana no se muestra la de otra. Si herdr no responde, queda la ultima en escribir.
+  if (own && claude) {
+    const mine = own.sessionId;
+    claude.sessions = mine ? [claude.sessions.find((s) => s.id === mine) || { id: mine }] : [];
+    claude.noSession = !mine;
+  }
   return { claude, codex: safe(readCodexUsage) };
 }
 
